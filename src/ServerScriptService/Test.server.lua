@@ -1,16 +1,18 @@
+local LocalStorageService = game:GetService("LocalStorageService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local BStar = require(ReplicatedStorage.BakeStar)
+local GridSolver = require(ReplicatedStorage.Solvers.GridSolver)
 
 local boundaries = ReplicatedStorage.TestRegion:GetChildren()
 
-local density = 1 / 8
+local density = 1 / 16
 
 local RCP = RaycastParams.new()
 RCP.FilterType = Enum.RaycastFilterType.Exclude
 RCP.FilterDescendantsInstances = { workspace.PathNodes, workspace.Start, workspace.Goal }
 
-local Grid = BStar.Bake(boundaries, density, RCP, true)
-Grid.MaxIterations *= 2
+local Solver = GridSolver.new(boundaries, density, RCP, true)
+
+Solver.MaxIterations *= 2
 local function dist(A, B)
 	return (math.abs(A.X - B.X) + workspace.Gravity * math.abs(A.Y - B.Y) ^ 2 + math.abs(A.Z - B.Z))
 end
@@ -18,12 +20,14 @@ end
 local lastGridPosition = nil
 
 local function pathlogic()
-	local gridPosition = Grid:SnapToGrid(workspace.Goal.Position)
-	--if gridPosition == lastGridPosition then return end
+	local gridPosition = workspace.Goal.Position
+	if gridPosition == lastGridPosition then
+		return
+	end
 
 	workspace.PathNodes:ClearAllChildren()
 	lastGridPosition = gridPosition
-	local path = Grid:GetPathAsync(workspace.Start.Position, workspace.Goal.Position, dist, false)
+	local path = Solver:GetPath(workspace.Start.Position, workspace.Goal.Position, dist, false)
 
 	if not path then
 		--print("Path too expensive...")
@@ -52,11 +56,17 @@ local function pathlogic()
 			local Beam: Beam = P0.Beam
 			Beam.Attachment0 = P0.PathAtt
 			Beam.Attachment1 = P1.PathAtt
-			task.wait()
+			task.wait(0.1)
 		end
 	end
 end
 
+while true do
+	pathlogic()
+
+	task.wait(10)
+end
+--[[
 game:GetService("RunService").Heartbeat:Connect(function()
 	if #game.Players:GetPlayers() > 0 and game.Players:GetPlayers()[1].Character then
 		local part = game.Players:GetPlayers()[1].Character:FindFirstChild("Head")
@@ -65,6 +75,7 @@ game:GetService("RunService").Heartbeat:Connect(function()
 		end
 	end
 end)
+-]]
 --[[  
 
 for _,b in pairs(workspace.TeamBeacons:GetChildren()) do
