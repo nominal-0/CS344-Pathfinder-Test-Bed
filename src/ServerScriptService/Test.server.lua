@@ -1,15 +1,23 @@
 local LocalStorageService = game:GetService("LocalStorageService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GridSolver = require(ReplicatedStorage.Solvers.GridSolver)
+local OctreeSolver = require(ReplicatedStorage.Solvers.OctreeSolver)
 
 local boundaries = ReplicatedStorage.TestRegion:GetChildren()
+local boundaryPart = ReplicatedStorage.TestRegion.TestRegion
 
 local density = 1 / 16
 
 local RCP = RaycastParams.new()
 RCP.FilterType = Enum.RaycastFilterType.Exclude
-RCP.FilterDescendantsInstances = { workspace.PathNodes, workspace.Start, workspace.Goal }
+RCP.FilterDescendantsInstances = { workspace.Debug, workspace.Start, workspace.Goal }
 
+local OP = OverlapParams.new()
+OP.FilterType = Enum.RaycastFilterType.Exclude
+OP.FilterDescendantsInstances = { workspace.Debug, workspace.Start, workspace.Goal }
+local Solver = OctreeSolver.new(boundaryPart, 5, OP, true)
+print(Solver.Tree)
+--[[
 local Solver = GridSolver.new(boundaries, density, RCP, true)
 
 Solver.MaxIterations *= 2
@@ -25,7 +33,7 @@ local function pathlogic()
 		return
 	end
 
-	workspace.PathNodes:ClearAllChildren()
+	workspace.Debug.PathNodes:ClearAllChildren()
 	lastGridPosition = gridPosition
 	local path = Solver:GetPath(workspace.Start.Position, workspace.Goal.Position, dist, false)
 
@@ -35,7 +43,7 @@ local function pathlogic()
 		local Parts = {}
 		for _, v in pairs(path) do
 			local P0 = ReplicatedStorage.VisPart:Clone()
-			P0.Parent = workspace.PathNodes
+			P0.Parent = workspace.Debug.PathNodes
 			P0.Position = v.Position
 			table.insert(Parts, P0)
 			local A0 = Instance.new("Attachment")
@@ -60,13 +68,14 @@ local function pathlogic()
 		end
 	end
 end
+--]]
 
+--[[
 while true do
 	pathlogic()
 
 	task.wait(10)
 end
---[[
 game:GetService("RunService").Heartbeat:Connect(function()
 	if #game.Players:GetPlayers() > 0 and game.Players:GetPlayers()[1].Character then
 		local part = game.Players:GetPlayers()[1].Character:FindFirstChild("Head")
